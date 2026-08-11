@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VendEase SLA Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: #0f1117;
+    color: #e5e7eb;
+    padding: 24px;
+  }
+  .page { max-width: 1400px; margin: 0 auto; }
+  .header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #262a35;
+  }
+  .header .title { font-size: 22px; font-weight: 700; }
+  .header .subtitle { font-size: 13px; color: #8b91a3; margin-top: 3px; }
+  .header .stats { display: flex; gap: 22px; }
+  .header .stat { text-align: right; }
+  .header .stat .n { font-size: 26px; font-weight: 700; line-height: 1; }
+  .header .stat .l { font-size: 11px; color: #8b91a3; margin-top: 2px; }
+  .stat.alert .n { color: #f0595a; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: #171a23;
+    border: 1px solid #262a35;
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .card.has-alerts { border-left: 3px solid #f0595a; }
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .card-head .name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+  .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+  .badge.bad { background: #3a1c1e; color: #f0595a; }
+  .badge.ok { background: #163524; color: #4ade80; }
+  .col-head {
+    display: grid;
+    grid-template-columns: 1fr 52px 52px 46px 56px;
+    gap: 6px;
+    padding: 0 0 5px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #5b6072;
+  }
+  .col-head span:not(:first-child) { text-align: right; }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 52px 52px 46px 56px;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0;
+    font-size: 12.5px;
+    border-top: 1px solid #21242e;
+  }
+  .row:first-of-type { border-top: none; }
+  .loc { white-space: normal; word-break: normal; line-height: 1.3; padding-right: 4px; display: block; }
+  .serial { display: block; font-size: 10px; color: #5b6072; margin-top: 1px; font-family: monospace; }
+  .pill { text-align: right; font-size: 10.5px; font-weight: 600; padding: 2px 6px; border-radius: 4px; white-space: nowrap; justify-self: end; }
+  .pill.danger { background: #3a1c1e; color: #f0595a; }
+  .pill.warning { background: #3a2e14; color: #eab308; }
+  .pill.ok { background: #163524; color: #4ade80; }
+  .all-clear { display: flex; align-items: center; gap: 5px; padding: 5px 0; font-size: 12.5px; color: #4ade80; }
+  .footer { margin-top: 16px; font-size: 11px; color: #5b6072; text-align: right; }
+  .footer .push-time { margin-top: 3px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div>
+      <div class="title">VendEase SLA dashboard</div>
+      <div class="subtitle" id="hdr-date"></div>
+    </div>
+    <div class="stats">
+      <div class="stat alert"><div class="n" id="hdr-alerts"></div><div class="l">in alert</div></div>
+      <div class="stat"><div class="n" id="hdr-machines"></div><div class="l">machines</div></div>
+    </div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="footer">
+    <div id="footer"></div>
+    <div class="push-time" id="footer-push"></div>
+  </div>
+</div>
+
+<script>
+const DATA = {"date": "2026-08-11", "run_date": "2026-08-11", "run_time": "13:34 BST", "run_timestamp": "2026-08-11 run", "partners": {"JW Vending": {"total": 57, "alerts": [{"serial": "SVM0000833", "partner": "JW Vending", "location": "Premier Inn Cribbs", "water_pct": 0.0, "water_avail": 0, "water_cap": 50, "snack_pct": 47.2, "snack_avail": 134, "snack_cap": 284, "online": "Offline"}, {"serial": "SVM0000858", "partner": "JW Vending", "location": "Premier Inn Frome", "water_pct": 0.0, "water_avail": 0, "water_cap": 40, "snack_pct": 75.7, "snack_avail": 215, "snack_cap": 284, "online": "Online"}, {"serial": "IVM0007853", "partner": "JW Vending", "location": "Premier Inn Cardiff Bay", "water_pct": 0.0, "water_avail": 0, "water_cap": 40, "snack_pct": 66.9, "snack_avail": 190, "snack_cap": 284, "online": "Online"}, {"serial": "IVM0007837", "partner": "JW Vending", "location": "Premier Inn Torquay Seafront", "water_pct": 0.0, "water_avail": 0, "water_cap": 40, "snack_pct": 66.5, "snack_avail": 189, "snack_cap": 284, "online": "Online"}, {"serial": "IVM0007877", "partner": "JW Vending", "location": "Premier Inn Torquay Seafront", "water_pct": 0.0, "water_avail": 0, "water_cap": 40, "snack_pct": 60.6, "snack_avail": 172, "snack_cap": 284, "online": "Online"}, {"serial": "IVM0007864", "partner": "JW Vending", "location": "Premier Inn Swindon Town Center", "water_pct": 5.0, "water_avail": 2, "water_cap": 40, "snack_pct": 76.4, "snack_avail": 217, "snack_cap": 284, "online": "Online"}, {"serial": "SVM0000835", "partner": "JW Vending", "location": "Premier Weston Super Mare Seafront", "water_pct": 8.0, "water_avail": 4, "water_cap": 50, "snack_pct": 56.7, "snack_avail": 161, "snack_cap": 284, "online": "Online"}, {"serial": "SVM0000857", "partner": "JW Vending", "location": "Premier Inn Taunton Ruishton", "water_pct": 10.0, "water_avail": 4, "water_cap": 40, "snack_pct": 64.1, "snack_avail": 182, "snack_cap": 284, "online": "Online"}, {"serial": "IVM0007855", "partner": "JW Vending", "location": "Premier Inn Cardiff Bay", "water_pct": 12.5, "water_avail": 5, "water_cap": 40, "snack_pct": 63.4, "snack_avail": 180, "snack_cap": 284, "online": "Online"}]}, "Wilkes Vending": {"total": 22, "alerts": []}, "WLV": {"total": 181, "alerts": []}, "V4 Vending": {"total": 1, "alerts": []}, "VendEase Travelodge": {"total": 31, "alerts": []}, "Abercromby Vending": {"total": 79, "alerts": [{"serial": "SVM0000294", "partner": "Abercromby Vending", "location": "Premier Inn Falkirk East", "water_pct": 0.0, "water_avail": 0, "water_cap": 40, "snack_pct": 0.0, "snack_avail": 0, "snack_cap": 296, "online": "Offline"}, {"serial": "SVM0000296", "partner": "Abercromby Vending", "location": "Premier Inn Milngavie", "water_pct": 0.0, "water_avail": 0, "water_cap": 40, "snack_pct": 45.9, "snack_avail": 136, "snack_cap": 296, "online": "Offline"}, {"serial": "SVM0000301", "partner": "Abercromby Vending", "location": "Premier Inn Musselburgh", "water_pct": 0.0, "water_avail": 0, "water_cap": 40, "snack_pct": 54.7, "snack_avail": 162, "snack_cap": 296, "online": "Online"}]}, "VendEase Premier Inn": {"total": 205, "alerts": [{"serial": "IVM0006463", "partner": "VendEase Premier Inn", "location": "Premier Inn Braintree (Freeport Village)", "water_pct": 4.0, "water_avail": 2, "water_cap": 50, "snack_pct": 75.7, "snack_avail": 203, "snack_cap": 268, "online": "Online"}, {"serial": "SVM0000438", "partner": "VendEase Premier Inn", "location": "Premier Inn Chelmsford (Boreham)", "water_pct": 90.0, "water_avail": 45, "water_cap": 50, "snack_pct": 10.6, "snack_avail": 30, "snack_cap": 284, "online": "Online"}, {"serial": "SVM0000458", "partner": "VendEase Premier Inn", "location": "Premier Inn Heathrow Airport Terminal 5", "water_pct": 12.0, "water_avail": 6, "water_cap": 50, "snack_pct": 25.7, "snack_avail": 73, "snack_cap": 284, "online": "Online"}, {"serial": "IVM0006985", "partner": "VendEase Premier Inn", "location": "Premier Inn London Stansted Airport", "water_pct": 40.0, "water_avail": 20, "water_cap": 50, "snack_pct": 12.5, "snack_avail": 35, "snack_cap": 280, "online": "Online"}]}}, "tracking": {"SVM0000833": "2026-08-11", "SVM0000858": "2026-08-11", "IVM0007853": "2026-08-11", "IVM0007837": "2026-08-11", "IVM0007877": "2026-08-11", "IVM0007864": "2026-08-11", "SVM0000835": "2026-08-11", "SVM0000857": "2026-08-11", "IVM0007855": "2026-08-11", "SVM0000294": "2026-08-11", "SVM0000296": "2026-08-11", "SVM0000301": "2026-08-11", "IVM0006463": "2026-08-11", "SVM0000438": "2026-08-11", "SVM0000458": "2026-08-11", "IVM0006985": "2026-08-11"}, "last_github_push": null, "footer_extra": " \u00b7 9 location-sheet machine(s) with non-prefixed serial numbers not currently reporting in Luna CMS"};
+const KNOWN_ORDER = ["JW Vending", "Wilkes Vending", "WLV", "V4 Vending", "VendEase Travelodge", "Abercromby Vending", "VendEase Premier Inn"];
+const ICONS = {
+  'JW Vending': '\ud83c\udfe8',
+  'Wilkes Vending': '\ud83c\udfe8',
+  'WLV': '\ud83c\udfe8',
+  'V4 Vending': '\ud83c\udfe8',
+  'VendEase Travelodge': '\ud83d\ude8c',
+  'Abercromby Vending': '\ud83c\udfe8',
+  'VendEase Premier Inn': '\ud83c\udfe8',
+  'Unknown': '\u2753'
+};
+const PARTNERS = [...KNOWN_ORDER, ...Object.keys(DATA.partners).filter(p => !KNOWN_ORDER.includes(p))];
+
+function pillClass(pct) {
+  if (pct === null || pct === undefined) return 'ok';
+  if (pct <= 10) return 'danger';
+  if (pct <= 24) return 'warning';
+  return 'ok';
+}
+
+function pill(pct) {
+  if (pct === null || pct === undefined) return '<span class="pill">n/a</span>';
+  const c = pillClass(pct);
+  return `<span class="pill ${c}">${Math.floor(pct)}%</span>`;
+}
+
+function daysSince(ds) {
+  const ref = new Date(DATA.run_date || DATA.date);
+  return Math.max(1, Math.round((ref - new Date(ds)) / 86400000) + 1);
+}
+
+function onlinePill(status) {
+  const isOnline = status === 'Online';
+  const isUnknown = status !== 'Online' && status !== 'Offline';
+  if (isUnknown) return '<span class="pill">?</span>';
+  return `<span class="pill ${isOnline ? 'ok' : 'danger'}">${isOnline ? 'Yes' : 'No'}</span>`;
+}
+
+const runD = new Date(DATA.run_date || DATA.date);
+document.getElementById('hdr-date').textContent = runD.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + (DATA.run_time ? ' \u00b7 ' + DATA.run_time : '');
+
+let totalAlerts = 0, totalMachines = 0;
+PARTNERS.forEach(p => {
+  const pd = DATA.partners[p];
+  if (!pd) return;
+  totalMachines += pd.total || 0;
+  totalAlerts += pd.alerts.length;
+});
+document.getElementById('hdr-alerts').textContent = totalAlerts;
+document.getElementById('hdr-machines').textContent = totalMachines;
+
+let html = '';
+PARTNERS.forEach(p => {
+  const pd = DATA.partners[p];
+  if (!pd) return;
+  const alerts = pd.alerts;
+  const hasAlerts = alerts.length > 0;
+  const icon = ICONS[p] || '\ud83c\udfe2';
+  html += `<div class="card ${hasAlerts ? 'has-alerts' : ''}">
+    <div class="card-head">
+      <span class="name"><span>${icon}</span>${p}</span>
+      <span class="badge ${hasAlerts ? 'bad' : 'ok'}">${alerts.length}/${pd.total}</span>
+    </div>`;
+  if (!hasAlerts) {
+    html += `<div class="all-clear">&#10003; All clear</div>`;
+  } else {
+    html += `<div class="col-head"><span>Location</span><span>Water</span><span>Snack</span><span>Days</span><span>Online</span></div>`;
+    alerts.forEach(a => {
+      const days = DATA.tracking[a.serial] ? daysSince(DATA.tracking[a.serial]) : 1;
+      const dayTag = days > 1 ? `<span class="pill ok">${days}d</span>` : '<span class="pill ok">new</span>';
+      html += `<div class="row">
+        <span class="loc">${a.location}<span class="serial">${a.serial}</span></span>
+        ${pill(a.water_pct)}
+        ${pill(a.snack_pct)}
+        ${dayTag}
+        ${onlinePill(a.online)}
+      </div>`;
+    });
+  }
+  html += `</div>`;
+});
+document.getElementById('grid').innerHTML = html;
+document.getElementById('footer').textContent = 'Water = Radnor/Strathmore stock \u00b7 Snacks = chocolate/crisps/bars stock';
+document.getElementById('footer-push').textContent = DATA.last_github_push
+  ? 'Last uploaded to GitHub: ' + DATA.last_github_push
+  : 'First dashboard run \u2014 no prior history to compare against';
+
+// Departure-board style auto-paging: jump down one screen, hold, jump to the
+// next, and loop back to the top once the bottom is reached. Only runs when
+// the page is actually taller than the viewport (i.e. once partner cards
+// overflow one screen) - on a single screen's worth of content it does nothing.
+(function () {
+  const HOLD_MS = 6000; // time to hold at each screen before jumping
+  let timer = null;
+
+  function maxScroll() {
+    return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+  }
+
+  function hasOverflow() {
+    return maxScroll() > 20;
+  }
+
+  function jumpToNextScreen() {
+    if (!hasOverflow()) return;
+    const max = maxScroll();
+    const next = window.scrollY + window.innerHeight;
+    window.scrollTo(0, next >= max - 5 ? 0 : next);
+  }
+
+  function restart() {
+    if (timer) clearInterval(timer);
+    timer = hasOverflow() ? setInterval(jumpToNextScreen, HOLD_MS) : null;
+  }
+
+  window.addEventListener('load', restart);
+  window.addEventListener('resize', restart);
+})();
+</script>
+</body>
+</html>
