@@ -114,7 +114,16 @@ const ICONS = {
   'VendEase Premier Inn': '\ud83c\udfe8',
   'Unknown': '\u2753'
 };
-const PARTNERS = [...KNOWN_ORDER, ...Object.keys(DATA.partners).filter(p => !KNOWN_ORDER.includes(p))];
+const BASE_ORDER = [...KNOWN_ORDER, ...Object.keys(DATA.partners).filter(p => !KNOWN_ORDER.includes(p))];
+// Partners with an SLA breach (alerts.length > 0) always come first, sorted by
+// most breaches first; partners with no breaches follow, in their usual order.
+const PARTNERS = [...BASE_ORDER].sort((a, b) => {
+  const pa = DATA.partners[a], pb = DATA.partners[b];
+  const aCount = pa ? pa.alerts.length : 0;
+  const bCount = pb ? pb.alerts.length : 0;
+  if (aCount === 0 && bCount === 0) return 0; // keep original relative order
+  return bCount - aCount;
+});
 
 function pillClass(pct) {
   if (pct === null || pct === undefined) return 'ok';
